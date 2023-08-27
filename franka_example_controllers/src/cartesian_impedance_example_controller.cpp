@@ -152,7 +152,12 @@ void CartesianImpedanceExampleController::update(const ros::Time& time,
   // compute error to desired pose
   // position error
   error.head(3) << position - position_d_;
-  error.head(3) << error.head(3).cwiseMax(-translational_clip).cwiseMin(translational_clip);
+  for (int i = 0; i < 3; i++) {
+    error(i) = std::min(std::max(error(i), translational_clip_min(i)), translational_clip_max(i));
+  }
+  // error[0] << error[0].cwiseMax(-translational_clip_x).cwiseMin(translational_clip_x);
+  // error[1] << error[1].cwiseMax(-translational_clip_y).cwiseMin(translational_clip_y);
+  // error[2] << error[2].cwiseMax(-translational_clip_z).cwiseMin(translational_clip_z);
   error_i.head(3) << (error_i.head(3) + error.head(3)).cwiseMax(-0.1).cwiseMin(0.1);
 
   // orientation error
@@ -164,8 +169,10 @@ void CartesianImpedanceExampleController::update(const ros::Time& time,
   error.tail(3) << error_quaternion.x(), error_quaternion.y(), error_quaternion.z();
   // Transform to base frame
   error.tail(3) << -transform.linear() * error.tail(3);
-  error.tail(3) << error.tail(3).cwiseMax(-rotational_clip).cwiseMin(rotational_clip);
-  error_i.tail(3) << (error_i.tail(3) + error.tail(3)).cwiseMax(-0.3).cwiseMin(0.3);
+    for (int i = 0; i < 3; i++) {
+    error(i+3) = std::min(std::max(error(i+3), rotational_clip_min(i)), rotational_clip_max(i));
+  }
+    error_i.tail(3) << (error_i.tail(3) + error.tail(3)).cwiseMax(-0.3).cwiseMin(0.3);
 
   // compute control
   // allocate variables
@@ -192,6 +199,10 @@ void CartesianImpedanceExampleController::update(const ros::Time& time,
   tau_d << tau_task + tau_nullspace + coriolis;
   // Saturate torque rate to avoid discontinuities
   tau_d << saturateTorqueRate(tau_d, tau_J_d);
+
+  // Set tau_d to all zeros for sanity check and calibrate end-effector mass
+  // tau_d.setZero();
+
   for (size_t i = 0; i < 7; ++i) {
     joint_handles_[i].setCommand(tau_d(i));
   }
@@ -262,9 +273,22 @@ void CartesianImpedanceExampleController::complianceParamCallback(
  
   nullspace_stiffness_target_ = config.nullspace_stiffness;
   joint1_nullspace_stiffness_target_ = config.joint1_nullspace_stiffness;
- 
-  translational_clip = config.translational_clip;
-  rotational_clip = config.rotational_clip;
+  translational_clip_x = config.translational_clip_x;
+  translational_clip_y = config.translational_clip_y;
+  translational_clip_z = config.translational_clip_z;
+  translational_clip_neg_x = config.translational_clip_neg_x;
+  translational_clip_neg_y = config.translational_clip_neg_y;
+  translational_clip_neg_z = config.translational_clip_neg_z;
+  translational_clip_min << -translational_clip_neg_x, -translational_clip_neg_y, -translational_clip_neg_z;
+  translational_clip_max << translational_clip_x, translational_clip_y, translational_clip_z;
+  rotational_clip_x = config.rotational_clip_x;
+  rotational_clip_y = config.rotational_clip_y;
+  rotational_clip_z = config.rotational_clip_z;
+  rotational_clip_neg_x = config.rotational_clip_neg_x;
+  rotational_clip_neg_y = config.rotational_clip_neg_y;
+  rotational_clip_neg_z = config.rotational_clip_neg_z;
+  rotational_clip_min << -rotational_clip_neg_x, -rotational_clip_neg_y, -rotational_clip_neg_z;
+  rotational_clip_max << rotational_clip_x, rotational_clip_y, rotational_clip_z;
   Ki_target_.setIdentity();
   Ki_target_.topLeftCorner(3, 3)
       << config.translational_Ki * Eigen::Matrix3d::Identity();
