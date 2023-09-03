@@ -64,13 +64,13 @@ void JointPositionExampleController::starting(const ros::Time& /* time */) {
 void JointPositionExampleController::update(const ros::Time& /*time*/,
                                             const ros::Duration& period) {
   elapsed_time_ += period;
-  reset_pose_[0] = 0.05  ;
-  reset_pose_[1] = 0.39;
-  reset_pose_[2] = 0.06;
-  reset_pose_[3] = -1.76;
-  reset_pose_[4] = -0.13;
-  reset_pose_[5] = 2.18;
-  reset_pose_[6] = -1.44;
+  reset_pose_[0] = 0.0;
+  reset_pose_[1] = 0.0;
+  reset_pose_[2] = 0.0;
+  reset_pose_[3] = -1.9;
+  reset_pose_[4] = 0.0;
+  reset_pose_[5] = 2.0;
+  reset_pose_[6] = 0.0;
   for (size_t i = 0; i < 7; ++i) {
     if (elapsed_time_.toSec() > 10){
       position_joint_handles_[i].setCommand(reset_pose_[i]); // - delta_angle);
