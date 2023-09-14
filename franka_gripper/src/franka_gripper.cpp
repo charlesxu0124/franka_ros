@@ -71,7 +71,14 @@ void gripperCommandExecuteCallback(
   } catch (const franka::Exception& ex) {
     ROS_ERROR_STREAM("" << ex.what());
   }
-  action_server->setAborted();
+  if (!homing(gripper, nullptr)) {  // Attempting to home the gripper after grasp failure
+    ROS_ERROR_STREAM("Grasp failed and subsequent homing also failed.");
+    action_server->setAborted();
+  } 
+  else {
+      ROS_WARN_STREAM("Grasp failed. Gripper successfully homed.");
+      action_server->setSucceeded();  // Assuming you want to set the action as succeeded after successful homing
+  }
 }
 
 bool move(const franka::Gripper& gripper, const MoveGoalConstPtr& goal) {

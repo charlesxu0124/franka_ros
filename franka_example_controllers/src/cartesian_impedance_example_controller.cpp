@@ -153,7 +153,7 @@ void CartesianImpedanceExampleController::update(const ros::Time& time,
   // position error
   error.head(3) << position - position_d_;
   error.head(3) << error.head(3).cwiseMax(-translational_clip).cwiseMin(translational_clip);
-  error_i.head(3) << (error_i.head(3) + error.head(3)).cwiseMax(-0.1).cwiseMin(0.1);
+  error_i.head(3) << (error_i.head(3) + error.head(3)).cwiseMax(-0.05).cwiseMin(0.05);
 
   // orientation error
   if (orientation_d_.coeffs().dot(orientation.coeffs()) < 0.0) {
@@ -165,7 +165,7 @@ void CartesianImpedanceExampleController::update(const ros::Time& time,
   // Transform to base frame
   error.tail(3) << -transform.linear() * error.tail(3);
   error.tail(3) << error.tail(3).cwiseMax(-rotational_clip).cwiseMin(rotational_clip);
-  error_i.tail(3) << (error_i.tail(3) + error.tail(3)).cwiseMax(-0.3).cwiseMin(0.3);
+  error_i.tail(3) << (error_i.tail(3) + error.tail(3)).cwiseMax(-0.1).cwiseMin(0.1);
 
   // compute control
   // allocate variables
@@ -193,6 +193,7 @@ void CartesianImpedanceExampleController::update(const ros::Time& time,
   // Saturate torque rate to avoid discontinuities
   tau_d << saturateTorqueRate(tau_d, tau_J_d);
   for (size_t i = 0; i < 7; ++i) {
+    // joint_handles_[i].setCommand(0.0);
     joint_handles_[i].setCommand(tau_d(i));
   }
 
