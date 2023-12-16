@@ -22,7 +22,7 @@ panda_1:
   # Internal controller for motion generators [joint_impedance|cartesian_impedance]
   internal_controller: joint_impedance
   # Used to decide whether to enforce realtime mode [enforce|ignore]
-  realtime_config: enforce
+  realtime_config: ignore
   # Configure collision behavior reflexes.
   # The upper torque and upper force thresholds are set to higher values compared to the default ones.
   collision_config:
@@ -55,7 +55,7 @@ panda_2:
   # Internal controller for motion generators [joint_impedance|cartesian_impedance]
   internal_controller: joint_impedance
   # Used to decide whether to enforce realtime mode [enforce|ignore]
-  realtime_config: enforce
+  realtime_config: ignore
   # Configure collision behavior reflexes.
   # The upper torque and upper force thresholds are set to higher values compared to the default ones.
   collision_config:

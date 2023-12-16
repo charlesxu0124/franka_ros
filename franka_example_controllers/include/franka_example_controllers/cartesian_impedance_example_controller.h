@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include <controller_interface/multi_interface_controller.h>
 #include <dynamic_reconfigure/server.h>
@@ -68,6 +69,7 @@ class CartesianImpedanceExampleController : public controller_interface::MultiIn
   Eigen::Quaterniond orientation_d_;
   Eigen::Vector3d position_d_target_;
   Eigen::Quaterniond orientation_d_target_;
+  std::ofstream data_file_;
 
   // Dynamic reconfigure
   std::unique_ptr<dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>

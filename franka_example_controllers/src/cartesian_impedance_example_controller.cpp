@@ -105,6 +105,13 @@ bool CartesianImpedanceExampleController::init(hardware_interface::RobotHW* robo
   cartesian_stiffness_.setZero();
   cartesian_damping_.setZero();
 
+  // data_file_.open("/home/panda/Desktop/data_file_1.csv", std::ios::out);
+  // // Add a header to the CSV
+  // if(data_file_.is_open()) {
+  //     data_file_ << "time_nsec, position_z_target, position_z, position_desired_z, error_before_clipping_z, error_after_clipping_z, force_before_clipping_z, force_after_clipping_z\n";
+  // }
+
+
   return true;
 }
 
@@ -149,10 +156,18 @@ void CartesianImpedanceExampleController::update(const ros::Time& time,
   position << transform.translation();
   Eigen::Quaterniond orientation(transform.linear());
 
+  Eigen::VectorXd error_before_clipping(6), error_after_clipping(6);
+
   // compute error to desired pose
   // position error
   error.head(3) << position - position_d_;
+
+  error_before_clipping.head(3) << error.head(3);
+
   error.head(3) << error.head(3).cwiseMax(-translational_clip).cwiseMin(translational_clip);
+
+  error_after_clipping.head(3) << error.head(3);
+
   error_i.head(3) << (error_i.head(3) + error.head(3)).cwiseMax(-0.05).cwiseMin(0.05);
 
   // orientation error
@@ -164,7 +179,13 @@ void CartesianImpedanceExampleController::update(const ros::Time& time,
   error.tail(3) << error_quaternion.x(), error_quaternion.y(), error_quaternion.z();
   // Transform to base frame
   error.tail(3) << -transform.linear() * error.tail(3);
+
+  error_before_clipping.tail(3) << error.tail(3);
+
   error.tail(3) << error.tail(3).cwiseMax(-rotational_clip).cwiseMin(rotational_clip);
+
+  error_after_clipping.tail(3) << error.tail(3);
+
   error_i.tail(3) << (error_i.tail(3) + error.tail(3)).cwiseMax(-0.1).cwiseMin(0.1);
 
   // compute control
@@ -175,6 +196,14 @@ void CartesianImpedanceExampleController::update(const ros::Time& time,
   // kinematic pseuoinverse
   Eigen::MatrixXd jacobian_transpose_pinv;
   pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
+
+  Eigen::VectorXd force_before_clipping(6);
+  force_before_clipping << -cartesian_stiffness_ * error_before_clipping - cartesian_damping_ * (jacobian * dq);
+
+  // PD control with feedforward term in carteasian space
+  Eigen::VectorXd force_after_clipping(6);
+  force_after_clipping << -cartesian_stiffness_ * error_after_clipping - cartesian_damping_ * (jacobian * dq);
+
 
   // Cartesian PD control with damping ratio = 1
   tau_task << jacobian.transpose() *
@@ -210,6 +239,11 @@ void CartesianImpedanceExampleController::update(const ros::Time& time,
   position_d_ = filter_params_ * position_d_target_ + (1.0 - filter_params_) * position_d_;
   orientation_d_ = orientation_d_.slerp(filter_params_, orientation_d_target_);
   Ki = filter_params_ * Ki_target_ + (1.0 - filter_params_) * Ki;
+  int64_t total_nsec = time.sec * 1e9 + time.nsec;
+  if(data_file_.is_open()) {
+    data_file_ << total_nsec << ", " <<  position_d_target_(2) << ", " << position(2) << ", " << position_d_(2)  << ", " << error_before_clipping(2) << ", " << error_after_clipping(2) << ", " << force_before_clipping(2) << ", " << force_after_clipping(2) << "\n";
+  }
+
 }
 
 void CartesianImpedanceExampleController::publishZeroJacobian(const ros::Time& time) {
